@@ -1,0 +1,4 @@
+#!/bin/sh                                                                       
+. /etc/vz/vz.conf                                                               
+. ${VE_CONFFILE}                                                           
+mount -t aufs -o dirs=/home/fs/IRCNET.diff/:/home/fs/source/=ro none ${VE_ROOT}/home/user/IRCNET/worker

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+WORKER="$PWD/worker"
+CMDP="/opt/exec_cmd"
+CMDF="$WORKER/$CMDP"

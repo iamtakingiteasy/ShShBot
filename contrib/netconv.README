@@ -1,0 +1,4 @@
+This is a simple network utiliti, applying iconv to the network stream, 
+recoding in from one encoding to anoterh; for example: CP1251 -> UTF-8
+
+Useful for non-ascii languages, used on non-unicode IRC-servers.

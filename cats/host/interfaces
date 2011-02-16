@@ -1,0 +1,9 @@
+auto tap0
+
+iface tap0 inet manual
+pre-up openvpn --mktun --dev tap0 --user user
+up ifconfig tap0 up
+up ifconfig tap0 192.168.20.1/24
+down ifconfig tap0 down
+post-down openvpn --rmtun --dev tap0
+

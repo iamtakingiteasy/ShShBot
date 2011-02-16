@@ -1,0 +1,5 @@
+#!/bin/sh
+. /etc/vz/vz.conf                                                          
+. ${VE_CONFFILE}                                                               
+umount -l ${VE_ROOT}/home/user/IRCNET/worker 2>/dev/null                        
+exit 0
