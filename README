@@ -1,0 +1,123 @@
+# ############################################################################ #
+# ############################# BOT STRUCTURE ################################ #
+# ############################################################################ #
+
+                                 HOST SYSTEM                                    
+                                      |                                         
+                               VIRTUAL SYSTEM                                   
+                                      |
+                             OPENVZ GUEST SYSTEM
+                                      |                                         
+                                     BOT                                        
+                                      |                                         
+                      CHROOTED COMMAND EXECUTION SYSTEM                         
+
+# ############################################################################ #
+# ############################### ASSUMING ################################### #
+# ############################################################################ #
+
+  HOST SYSTEM is a debian squeeze.
+  VIRTUAL SYSTEM is a qemu-kvm.
+  OPENVZ HOST SYSTEM is a debian squeeze
+  OPENVZ GUEST SYSTEM is a gentoo
+  CHROOTED COMMAND EXECUTION SYSTEM is a gentoo
+  
+  VIRTUAL SYSTEM netowrk range lies in 192.168.20.1/24
+  You are accessing HOST SYSTEM over ssh.
+  System you accessing from is named DESKTOP.
+  Your user account name on all systems is USER
+
+  HOST BOT PATH is /home/services/shbot
+
+  your IRC network name is IRCNET
+
+# ############################################################################ #
+# ######################## CONFIGURING HOST SYSTEM ########################### #
+# ############################################################################ #
+
+  HOST SYSTEM># apt-get install kvm 
+  HOST SYSTEM>$ cd HOST BOT PATH
+  HOST SYSTEM>$ qemu-img create botos.img 10G
+  HOST SYSTEM>$ wget http://cdimage.debian.org/debian-cd/6.0.0/multi-arch/iso-cd/debian-6.0.0-amd64-i386-netinst.iso
+  HOST SYSTEM>$ kvm -vnc :0 -hda botos.img -cdrom debian-6.0.0-amd64-i386-netinst.iso 
+
+
+# ############################################################################ #
+# ###################### CONFIGURING VIRTUAL SYSTEM ########################## #
+# ############################################################################ #
+
+  DESKTOP>$ vncviewer HOST SYSTEM
+
+  Install debian. I recommend you to choose single-partition mode and install
+  only base system; without graphical and other b-t.
+
+  HOST SYSTEM># openvpn --mktun --dev tap0 --user USER
+  HOST SYSTEM># ifconfig tap0 192.168.20.1/24
+
+  see cats/host/interfaces
+
+  HOST SYSTEM>$ kvm -m 512 -curses -net nic -net tap,ifname=tap0,script=no -hda botos.img
+
+  VIRTUAL SYSTEM># apt-get install openssh-server linux-image-openvz-686
+  VIRTUAL SYSTEM># echo aufs >> /etc/modules
+  VIRTUAL SYSTEM># modprobe aufs
+
+  VIRTUAL SYSTEM># sysctl net.ipv4.ip_forward=1
+  uncomment same line in /etc/sysctl.conf
+
+  follow this guide: http://wiki.openvz.org/Gentoo_template_creation to create
+  gentoo VPS system. As result you should get working `vzctl enter 800` cmd.
+  Or you could just download mine template from 
+  ftp://neverb.net/soft/mine/shshbot/extra/gentoo.tar.gz
+
+  VIRTUAL SYSTEM># mkdir -p /home/fs/source
+  VIRTUAL SYSTEM># chown USER:USER /home/fs/source
+
+  extract template you got by fylowing openvz guide to the /home/fs/source/
+  VIRTUAL SYSTEM>$ tar -xvf /var/lib/vz/template/cache/gentoo.tar.gz /home/fs/source/
+ 
+  VIRTUAL SYSTEM>$ mkdir /home/fs/IRCNET.diff
+
+  VIRTUAL SYSTEM># iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+  VIRTUAL SYSTEM># vzctl enter 800
+
+  OPENVZ GUEST SYSTEM># iptables -A OUTPUT -m owner ! --uid-owner root -j REJECT --reject-with icmp-port-unreachable
+  OPENVZ GUEST SYSTEM># rc-update add iptables default
+  OPENVZ GUEST SYSTEM># echo 'proc /home/user/IRCNET/proc proc defaults 0' >> /etc/fstab  
+  OPENVZ GUEST SYSTEM># useradd -m USER
+  OPENVZ GUEST SYSTEM># cd ~USER
+  OPENVZ GUEST SYSTEM># su user
+  OPENVZ GUEST SYSTEM>$ wget ftp://neverb.net/soft/mine/shshbot/shshbot-lastest.tar.gz
+  OPENVZ GUEST SYSTEM>$ tar -xf shshbot-lastest.tar.gz
+  OPENVZ GUEST SYSTEM>$ mv shshbot/* .
+  OPENVZ GUEST SYSTEM>$ rm -r shshbot shshbot-lastest.tar.gz
+  OPENVZ GUEST SYSTEM>$ ^D
+
+  use cats/virtual/800.*mount files; by placing them into /etc/vz/conf/
+
+  VIRTUAL SYSTEM># vzctl restart 800
+  VIRTUAL SYSTEM># vzctl enter 800
+  OPENVZ GUEST SYSTEM># cd ~USER
+  OPENVZ GUEST SYSTEM># su user
+  OPENVZ GUEST SYSTEM>$ cd IRCNET
+
+
+# ############################################################################ #
+# ########################### CONFIGURING BOT ################################ #
+# ############################################################################ #
+
+  edit folowing files:
+  * channels - channels configuration. format (by columns):
+               (1) - #channel_name
+               (2) - 1-99. number of messages for channel flood limit
+               (3) - 1-99. number of messages for user on channel flood limit
+               (4) - 0 or 1. '1' means that non-printable character WILL NOT
+                                 BE STRIPPED!
+               (5) - command trigger prefix.
+  * nick     - nickname of your bot
+  * port     - server port connect to
+  * server   - server hostname connect to
+  * admins   - list of resources of bot admins
+
+  then, run it as ./skeleton.sh NOTE that you should be in same directory with 
+  "skeleton.sh" file or everything will go terribly wrong!
