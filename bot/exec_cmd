@@ -1,18 +1,11 @@
 #!/bin/sh
 
-# This program is free software. It comes without any warranty, to
-# the extent permitted by applicable law. You can redistribute it
-# and/or modify it under the terms of the Do What The Fuck You Want
-# To Public License, Version 2, as published by Sam Hocevar. See
-# http://sam.zoy.org/wtfpl/COPYING for more details.
-
 WORKER="$PWD/worker"
 CMDP="/opt/exec_cmd"
 CMDF="$WORKER/$CMDP"
 
-
 ulimit -t 10
-ulimit -f 50000
+ulimit -f 10000
 ulimit -d 10000
 ulimit -m 1024
 ulimit -v 80960
@@ -26,10 +19,9 @@ shift
 uid=$(chroot --userspec=0 "$WORKER" /bin/sh -c "id -u $user 2>/dev/null")
 
 if [ -z "$uid" ]; then
-	touch "states/new_user_$user"
+	echo "Adding new user ${user}... Welcome to POSIX sh SH-bot! USAGE info on: ftp://neverb.net/doc/shbot/shbot.txt"
 	chroot --userspec=0 "$WORKER" /bin/sh -c "useradd -m $user"
 	uid=$(chroot --userspec=0 "$WORKER" /bin/sh -c "id -u $user 2>/dev/null")	
-	chmod 700 "$WORKER/home/$user"
 fi
 
 
@@ -49,32 +41,21 @@ echo 'ulimit -v 80960' >> "$CMDF"
 echo 'ulimit -u 50' >> "$CMDF"
 echo 'ulimit -x 50' >> "$CMDF"
 echo "cd /home/$user" >> "$CMDF"
-echo "mkdir -p /home/$user/conf" >> "$CMDF"
 echo "$@" >> "$CMDF"
 
-timeout 4 chroot --userspec=$uid:$uid "$WORKER" /bin/sh -c "bash $CMDP 2>&1 | head -c 10240 | sed 's|^$CMDP: line [0-9]*: ||g'" 2>/dev/null || { echo "Terminated"; }
+timeout 1 chroot --userspec=$uid "$WORKER" /bin/sh -c "bash $CMDP 2>&1 | head -c 10240 | sed 's|^$CMDP: line [0-9]*: ||g'" 2>/dev/null || { echo "Terminated"; }
 #timeout 1 chroot --userspec=$uid "$WORKER" /bin/sh -c "bash $CMDP 2>&1 | head -c 10240"
 
-########################### home check
-files="$(find "$WORKER/tmp" "$WORKER/home" -user $uid -printf "%s %p\n" | sort -rn)"
-count=$(echo "$files" | wc -l)
-size=$(echo "$files" | awk '{i+=$1}END{print i}')
+size=$(du -s "$WORKER/home/$user" | awk '{print $1}')
+count=$(ls -1 "$WORKER/home/$user" | wc -l)
+
+if [ $size -gt 5000 ]; then
+	echo "Too many large files. Cleaning up."
+	rm -r "$WORKER/home/$user/"*
+fi
 
 if [ $count -gt 100 ]; then
 	echo "Too many files. Cleaning up."
-	echo "$files" | sed '1,50d' | sed 's/^[0-9]*[[:space:]]//g' | while read line; do
-		if [ -f "$line" ]; then
-			rm -f "$line"
-		fi
-	done
-	find "$WORKER/tmp" "$WORKER/home" -user $uid -type d -empty -not -path "$WORKER/home/$user" -and -not -path "$WORKER/home/$user/conf" -delete
-fi
-
-if [ $size -gt $((5*1024*1024)) ]; then
-	echo "Too many big files. Cleaning up."
-	echo "$files" | awk -v size="$size" -v "limit=$((5*1024*1024))" '{diff+=$1; if ((size - diff) < limit) {print $0; exit}; print $0}' | sed 's/^[0-9]* //g' | while read line; do
-		rm -f "$line"
-	done
-	find "$WORKER/tmp" "$WORKER/home" -user $uid -type d -empty -not -path "$WORKER/home/$user" -and -not -path "$WORKER/home/$user/conf" -delete
+	rm -r "$WORKER/home/$user/"*
 fi
 

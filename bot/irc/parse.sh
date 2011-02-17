@@ -23,7 +23,7 @@ say() {
 
 
 	if printf "%s\n" "$room" | grep -vq "^#"; then
-		trim=3
+		trim=2
 	fi
 	if [ "$israw" = "true" ]; then
 		stripper=""
@@ -38,19 +38,36 @@ say() {
 	if [ $(printf "%s\n" "$data" | wc -l) -eq 1 ] && [ $(printf "%s\n" "$data" | wc -c) -le 400 ]; then
 		printf "%s\n" "PRIVMSG ${room} :${prep}$data" | tr -d "$stripper" | send
 	else
-		i=1;
-		printf "%s\n" "$data" | while read line; do
-			if [ $i -ge $(($trim-1)) ]; then
-				break
-			fi
+		i=0;
+		printf "%s\n" "$data" | while read line && [ $i -lt $(($trim-1)) ]; do
 			printf "%s\n" "PRIVMSG ${room} :${prep}$line" | tr -d "$stripper" | head -c 400 | send
-			let i++
+			i=$(($i+1))
 		done
+
 		app=""
-		if [ $(printf "%s\n" "$data" | wc -l) -ge $trim ]; then
+		
+		if [ $(printf "%s\n" "$data" | wc -l) -gt $trim ]; then
 			app=" ... ( $(printf "%s\n" "$data" | wgetpaste 2>/dev/null | sed 's/Your paste can be seen here: //g') )"
 		fi
-		printf "%s\n" "PRIVMSG ${room} :${prep}$(printf "%s\n" "$data" | sed "$(($trim))!d" | tr -d "$stripper" | head -c 400)${app}" | send
+			
+		printf "%s\n" "PRIVMSG ${room} :${prep}$(printf "%s\n" "$data" | sed "$trim!d" | tr -d "$stripper" | head -c 400)${app}" | send
+		
+#		i=1;
+#		printf "%s\n" "$data" | while read line; do
+#			if [ $i -ge $(($trim-1)) ]; then
+#				break
+#			fi
+#			printf "%s\n" "PRIVMSG ${room} :${prep}$line" | tr -d "$stripper" | head -c 400 | send
+#			let i++
+#		done
+#		app=""
+#		if [ $(printf "%s\n" "$data" | wc -l) -ge $(($trim)) ]; then
+#			app=" ... ( $(printf "%s\n" "$data" | wgetpaste 2>/dev/null | sed 's/Your paste can be seen here: //g') )"
+#		fi
+#		if [ $(printf "%s\n" "$data" | wc -l) -ne $(($trim-1)) ]; then
+#			let trim--
+#		fi
+#		printf "%s\n" "PRIVMSG ${room} :${prep}$(printf "%s\n" "$data" | sed "$(($trim))!d" | tr -d "$stripper" | head -c 400)${app}" | send
 	fi
 )
 }
