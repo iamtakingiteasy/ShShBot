@@ -23,7 +23,7 @@ get_base_directory() {
 (
 	path="$1"
 	[ ! -z "$2" ] && shift
-	possible_path="`printf "%s\n" "${path}" | sed 's|/[^/]*$|/|'`"
+	possible_path="$(printf "%s\n" "${path}" | sed 's|/[^/]*$|/|')"
 	if [ "${possible_path}" = "${path}" ] && printf "%s\n" "${path}" | grep -v '/$' >/dev/null; then
 		pwd
 		exit 0
@@ -67,16 +67,12 @@ Where [OPTIONS] are:
 # logic
 l_supported_interacters_list="nc netcat telnet"
 # paths
-p_network_binary="`get_binary ${l_supported_interacters_list}`"
-p_working_directory="`get_base_directory "$0"`"
+p_network_binary="$(get_binary ${l_supported_interacters_list})"
+p_working_directory="$(get_base_directory "$0")"
 p_protocol="${p_working_directory}/irc/proto.sh"
 p_func="${p_working_directory}/func/main.sh"
 p_socket_file="/tmp/shell-network-$$"
 # strings
-s_host="$(cat server)"
-s_bot_nick="$(cat nick)"
-# numerics
-n_port="$(cat port)"
 
 # ############################################################################ #
 
@@ -95,7 +91,7 @@ while [ ! -z "$1" ]; do
 			exit 0
 		;;
 		"-p" | "--port")
-			n_port=`printf "%d" "$2" 2>/dev/null` || {
+			n_port=$(printf "%d" "$2" 2>/dev/null) || {
 				printerr "Wrong port value: '$2'"
 				exit 1
 			}
@@ -125,6 +121,12 @@ done
 
 # ############################ Options Check Section ######################### #
 
+cd "$p_working_directory"
+s_host="$(cat server)"
+s_bot_nick="$(cat nick)"
+n_port="$(cat port)"
+
+
 if [ ${n_port} -gt 65535 ] || [ ${n_port} -lt 1 ]; then
 	printerr "Specified port (${n_port}) not in 1..65535 range"
 	exit 1
@@ -140,7 +142,7 @@ if [ ! -x "${p_protocol}" ]; then
 	exit 1
 fi
 
-if [ -z "`get_base_directory "${p_socket_file}"`" ]; then
+if [ -z "$(get_base_directory "${p_socket_file}")" ]; then
 	printerr "Invalid socket file path: ${p_socket_file}"
 	exit 1
 fi
@@ -190,7 +192,7 @@ disconnect() {
 
 send() {
 (
-	message="`cat`"
+	message="$(cat)"
 #	message="$1"
 	[ ! -z "$2" ] && shift
 	user_send "${message}"
@@ -210,6 +212,7 @@ client() {
 # ################################## Main Section ############################ #
 
 trap disconnect 2
+
 open_socket
 . "${p_protocol}"
 tail -f "${p_socket_file}" | "${p_network_binary}" "${s_host}" ${n_port} | client

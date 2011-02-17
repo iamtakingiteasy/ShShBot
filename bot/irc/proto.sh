@@ -11,7 +11,7 @@
 # paths
 p_parse="${p_working_directory}/irc/parse.sh"
 # strings
-s_os_version="`uname -s`"
+s_os_version="$(uname -s)"
 # bot
 bot_nick="${s_bot_nick}";
 bot_rooms="$(cat channels | awk '{print $1}')";
@@ -27,8 +27,8 @@ user_send() {
 
 register() {
 (
-  echo "USER ${s_bot_nick} ${s_bot_nick} ${s_bot_nick} ${s_bot_nick}" | send
-  echo "NICK ${bot_nick}" | send
+  printf "%s\n" "USER ${s_bot_nick} ${s_bot_nick} ${s_bot_nick} ${s_bot_nick}" | send
+  printf "%s\n" "NICK ${bot_nick}" | send
 )
 }
 
@@ -38,7 +38,6 @@ client() {
 		if [ -e "locks/global_dream" ]; then
 			continue
 		fi
-#		echo "$line"
 		message="${line}"
 		. "${p_parse}"
 #		printf "%q\n" "${message}" | parse

@@ -21,9 +21,8 @@ say() {
 
 	trim=1
 
-#	echo $room
 
-	if echo "$room" | grep -vq "^#"; then
+	if printf "%s\n" "$room" | grep -vq "^#"; then
 		trim=3
 	fi
 	if [ "$israw" = "true" ]; then
@@ -31,42 +30,27 @@ say() {
 	else
 		stripper="[:cntrl:]"
 	fi
+	prep=""
+	if [ "$prepend" = true ]; then
+		prep="$nick: "
+	fi
 
-
-
-	if [ $(echo "$data" | wc -l) -eq 1 ] && [ $(echo "$data" | wc -c) -le 450 ]; then
-		if [ "$prepend" = true ]; then
-			echo "PRIVMSG ${room} :$nick: $data" | tr -d "$stripper" | send
-		else
-			echo "PRIVMSG ${room} :$data" | tr -d "$stripper" | send
-		fi
+	if [ $(printf "%s\n" "$data" | wc -l) -eq 1 ] && [ $(printf "%s\n" "$data" | wc -c) -le 400 ]; then
+		printf "%s\n" "PRIVMSG ${room} :${prep}$data" | tr -d "$stripper" | send
 	else
-		if [ "$prepend" = true ]; then
-			i=1;
-			echo "$data" | while read line; do
-				echo "PRIVMSG ${room} :$nick: $line" | head -n $trim | tr -d "$stripper" | head -c 450 | send
-				let i++
-				if [ $i -ge $trim ]; then
-					break
-				fi
-			done
-			if [ $(echo "$data" | wc -l) -ge $trim ]; then
-				echo "PRIVMSG ${room} :$nick: $(echo "$data" | wgetpaste 2>/dev/null)" | send
+		i=1;
+		printf "%s\n" "$data" | while read line; do
+			if [ $i -ge $(($trim-1)) ]; then
+				break
 			fi
-		else
-			i=1;
-			echo "$data" | while read line; do
-				echo "PRIVMSG ${room} :$line" | head -n $trim | tr -d "$stripper" | head -c 450 | send
-				let i++
-				if [ $i -ge $trim ]; then
-					break
-				fi
-			done
-			if [ $(echo "$data" | wc -l) -ge $trim ]; then
-				echo "PRIVMSG ${room} :$(echo "$data" | wgetpaste 2>/dev/null)" | send
-			fi
+			printf "%s\n" "PRIVMSG ${room} :${prep}$line" | tr -d "$stripper" | head -c 400 | send
+			let i++
+		done
+		app=""
+		if [ $(printf "%s\n" "$data" | wc -l) -ge $trim ]; then
+			app=" ... ( $(printf "%s\n" "$data" | wgetpaste 2>/dev/null | sed 's/Your paste can be seen here: //g') )"
 		fi
-		
+		printf "%s\n" "PRIVMSG ${room} :${prep}$(printf "%s\n" "$data" | sed "$(($trim))!d" | tr -d "$stripper" | head -c 400)${app}" | send
 	fi
 )
 }
@@ -78,7 +62,7 @@ privsay() {
 	body="$1"
 	shift
 
-	echo "PRIVMSG ${nick} :${body}" | send
+	printf "%s\n" "PRIVMSG ${nick} :${body}" | send
 )
 }
 
@@ -87,8 +71,18 @@ privsay() {
 perform_join() {
 (
 	for room in $bot_rooms; do
-		echo "JOIN ${room}" | send
+		printf "%s\n" "JOIN ${room}" | send
 	done
+)
+}
+
+perform_autosend() {
+(
+	if [ -f "autosend" ]; then
+		cat autosend | while read line; do
+			printf "%s\n" "$line" | send
+		done
+	fi
 )
 }
 
@@ -96,7 +90,7 @@ handle_ping() {
 (
 	from="$1"
 	shift
-	echo "PONG :${from}" | send
+	printf "%s\n" "PONG :${from}" | send
 )
 }
 
@@ -160,38 +154,36 @@ parse() {
 #	cat 	
 #	cat
 	set -f
-	message="`cat | tr '\r' '\n'`"
+	message="$(cat | tr '\r' '\n')"
 #	cat /tmp/cmd
 #	return
-#	echo "$message"
+#	printf "%s\n" "$message"
 	if printf "%s\n" "${message}" | grep -q "^PING"; then
-		from="`printf "%s\n" "${message}" | sed 's/[^:]*://g'`"
+		from="$(printf "%s\n" "${message}" | sed 's/[^:]*://g')"
 		printf "%s \033[37;1m%s \033[33;1m%s \033[34;1m%s\033[0m\n" "${from}" "PING" " " " "
 		handle_ping "${from}"
 	elif printf "%s\n" "${message}" | grep -q "^[^:]*:[^ ]* QUIT"; then
-		from="`printf "%s\n" "${message}" | sed 's/^:\([^ ]*\).*/\1/g'`"
-		body="`printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* :\(.*\)/\1/g'`"
-		nick="`printf "%s\n" "${from}" | sed 's/\(^[^!]*\)!.*/\1/g'`"
-		rsrc="`printf "%s\n" "${from}" | sed 's/^[^!]*!\(.*\)/\1/g'`"
+		from="$(printf "%s\n" "${message}" | sed 's/^:\([^ ]*\).*/\1/g')"
+		body="$(printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* :\(.*\)/\1/g')"
+		nick="$(printf "%s\n" "${from}" | sed 's/\(^[^!]*\)!.*/\1/g')"
+		rsrc="$(printf "%s\n" "${from}" | sed 's/^[^!]*!\(.*\)/\1/g')"
 		printf "%s \033[37;1m%s \033[33;1m%s \033[34;1m%s\033[0m\n" "${from}" "QUIT" " " "${body}"
 		handle_quit "${nick}" "${rsrc}" "${body}"
 	elif printf "%s\n" "${message}" | grep -q "^[^:]*:[^ ]* JOIN"; then
-#		echo JOIN $message
-		from="`printf "%s\n" "${message}" | sed 's/^:\([^ ]*\).*/\1/g'`"
-		room="`printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* :\([^ ]*\).*/\1/g'`"
+		from="$(printf "%s\n" "${message}" | sed 's/^:\([^ ]*\).*/\1/g')"
+		room="$(printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* :\([^ ]*\).*/\1/g')"
 		printf "%s \033[37;1m%s \033[33;1m%s \033[34;1m%s\033[0m\n" "${from}" "JOIN" "${room}" " "
-		nick="`printf "%s\n" "${from}" | sed 's/\(^[^!]*\)!.*/\1/g'`"
-		rsrc="`printf "%s\n" "${from}" | sed 's/^[^!]*!\(.*\)/\1/g'`"
+		nick="$(printf "%s\n" "${from}" | sed 's/\(^[^!]*\)!.*/\1/g')"
+		rsrc="$(printf "%s\n" "${from}" | sed 's/^[^!]*!\(.*\)/\1/g')"
 		handle_join  "${nick}" "${rsrc}" "${room}"
 	else 
-#		echo regular
-		from="`printf "%s\n" "${message}" | sed 's/^:\([^ ]*\).*/\1/g'`"
-		type="`printf "%s\n" "${message}" | sed 's/^:[^ ]* \([^ ]*\).*/\1/g'`"
-		room="`printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* \([^ ]*\).*/\1/g'`"
-		body="`printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* [^ ]* :\(.*\)/\1/g'`"
+		from="$(printf "%s\n" "${message}" | sed 's/^:\([^ ]*\).*/\1/g')"
+		type="$(printf "%s\n" "${message}" | sed 's/^:[^ ]* \([^ ]*\).*/\1/g')"
+		room="$(printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* \([^ ]*\).*/\1/g')"
+		body="$(printf "%s\n" "${message}" | sed 's/^:[^ ]* [^ ]* [^ ]* :\(.*\)/\1/g')"
 
-		nick="`printf "%s\n" "${from}" | sed 's/\(^[^!]*\)!.*/\1/g'`"
-		rsrc="`printf "%s\n" "${from}" | sed 's/^[^!]*!\(.*\)/\1/g'`"
+		nick="$(printf "%s\n" "${from}" | sed 's/\(^[^!]*\)!.*/\1/g')"
+		rsrc="$(printf "%s\n" "${from}" | sed 's/^[^!]*!\(.*\)/\1/g')"
 
 		printf "%s \033[37;1m%s \033[33;1m%s \033[34;1m%s\033[0m\n" "${from}" "${type}" "${room}" "${body}"
 
@@ -209,7 +201,8 @@ parse() {
 				handle_part "${nick}" "${rsrc}" "${room}" "${body}"
 			;;
 			"001")
-				perform_join
+				perform_autosend
+#				perform_join
 			;;
 		esac
 	fi

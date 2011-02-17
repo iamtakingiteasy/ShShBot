@@ -49,7 +49,6 @@ handle_cmd() {
 		chan_colors=1
 	fi
 
-#	echo $lim_channel $lim_uoc
 
 
 	
@@ -85,46 +84,52 @@ handle_cmd() {
 	case $1 in
  		"xadmin")
  			if grep -q "^${rsrc}$" admins; then
- 				echo "PRIVMSG $room :Administrator recognized" | send
+ 				printf "%s\n" "PRIVMSG $room :Administrator recognized" | send
  			fi
  		;;
  		"xraw")
  			if grep -q "^${rsrc}$" admins; then
  				shift
- 				echo "$@" | send
+ 				printf "%s\n" "$@" | send
  			fi
  		;;
 
 		"xjoin")
 			if grep -q "^${rsrc}$" admins; then
-				echo "JOIN $@" | send
+				shift
+				printf "%s\n" "JOIN $@" | send
 			fi
 		;;
 		"xpart")
 			if grep -q "^${rsrc}$" admins; then
-				echo "PART $@" | send
+				shift
+				printf "%s\n" "PART $@" | send
 			fi
 		;;
 		"x"|"xsh")
 			shift
 			cmd="$@"
-#			echo AAA $cmd
 			cmdout="$(sudo ./exec_cmd "$username" "$cmd")"
+			if [ -e "states/new_user_$username" ]; then
+				say "false" "false" "$nick" "$nick" "Adding new user ${username}...Done."
+				say "false" "false" "$nick" "$nick" "Welcome to POSIX sh SH-bot! USAGE info and sources links are on: ftp://neverb.net/doc/shbot/shbot.txt"
+				rm -f "states/new_user_$username"
+			fi
 
 			if [ -z "$cmdout" ]; then
 				cmdout="no output"
 			fi
 
-			echo "[$room][$username]$(date "+[%F][%T]") $cmd" >> logs/MAIN_log
-			echo "$cmdout" | sed 's/^/\t/g' >> logs/MAIN_log
+			printf "%s\n" "[$room][$username]$(date "+[%F][%T]") $cmd" >> logs/MAIN_log
+			printf "%s\n" "$cmdout" | sed 's/^/\t/g' >> logs/MAIN_log
 
-			echo "[$room][$username]$(date "+[%F][%T]") $cmd" >> "logs/users/${username}.log"
-			echo "$cmdout" | sed 's/^/\t/g' >> "logs/users/${username}.log"
+			printf "%s\n"o "[$room][$username]$(date "+[%F][%T]") $cmd" >> "logs/users/${username}.log"
+			printf "%s\n" "$cmdout" | sed 's/^/\t/g' >> "logs/users/${username}.log"
 
 			flood_user_on_channel=0
-			if echo "$room" | grep -q '^#'; then
-				echo "[$room][$username]$(date "+[%F][%T]") $cmd" >> "logs/channels/${room}.log"
-				echo "$cmdout" | sed 's/^/\t/g' >> "logs/channels/${room}.log"
+			if printf "%s\n" "$room" | grep -q '^#'; then
+				printf "%s\n" "[$room][$username]$(date "+[%F][%T]") $cmd" >> "logs/channels/${room}.log"
+				printf "%s\n" "$cmdout" | sed 's/^/\t/g' >> "logs/channels/${room}.log"
 				flood_user_on_channel="$(cat "logs/channels/${room}.log" | grep "$username" | get_last_minute | wc -l)"
 				flood_channel="$(get_last_minute < "logs/channels/${room}.log" | wc -l)"
 
@@ -144,8 +149,6 @@ handle_cmd() {
 			flood_global="$(get_last_minute < "logs/MAIN_log" | wc -l)"
 			flood_user="$(get_last_minute < "logs/users/${username}.log" | wc -l)"
 	
-#			echo @@@ $flood_global - $lim_global
-#			echo @@@ $flood_user - $lim_user
 
 			echo "$cmdout"
 			if [ "$flood_global" -gt $lim_global ]; then
@@ -186,14 +189,13 @@ handle_cmd() {
 
 			fi
 
-			israw=$(sudo ./exec_cmd "$username" "[ -e ~/conf/raw ] && echo true")
+			israw=$(sudo ./exec_cmd "$username" "[ -e ~/conf/raw ] && printf "%s\n" true")
 			if [ -z "$israw" ]; then
 				israw="false"
 			fi
-#			echo $israw
 
 			prepend="false"
-			if echo "$room" | grep -q '^#'; then
+			if printf "%s\n" "$room" | grep -q '^#'; then
 				prepend="true"
 				if [ $chan_colors -eq 0 ]; then
 					israw="false"
@@ -233,13 +235,9 @@ func_main() {
 		;;
 		"privchat")
 			cmd="`printf "%s\n" "${body}" | sed "s/^${tchar}//g"`"
-			if echo "$body" | grep -vq "^${tchar}"; then
-#				echo 00000000000000000000
+			if printf "%s\n" "$body" | grep -vq "^${tchar}"; then
 				cmd=" $cmd"
-#			else
-#				echo @@@@@@@@@@@@@@@@@@@@@@@@@@2
 			fi
-#			echo @@@ x$cmd
 			handle_cmd "${nick}" "${rsrc}" "${nick}" x$cmd
 		;;
 
