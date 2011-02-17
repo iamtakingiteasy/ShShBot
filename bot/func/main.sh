@@ -90,7 +90,7 @@ handle_cmd() {
  		"xraw")
  			if grep -q "^${rsrc}$" admins; then
  				shift
- 				printf "%s\n" "$@" | send
+ 				echo "$@" | send
  			fi
  		;;
 
@@ -189,7 +189,7 @@ handle_cmd() {
 
 			fi
 
-			israw=$(sudo ./exec_cmd "$username" "[ -e ~/conf/raw ] && printf "%s\n" true")
+			israw=$(sudo ./exec_cmd "$username" "[ -e ~/conf/raw ] && echo true")
 			if [ -z "$israw" ]; then
 				israw="false"
 			fi

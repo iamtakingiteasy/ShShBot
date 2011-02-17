@@ -107,6 +107,8 @@
 # ############################################################################ #
 
   edit folowing files:
+  * autosend - list of commands to be executed after connect. use thi to
+               auth with nickserv and join to channels
   * channels - channels configuration. format (by columns):
                (1) - #channel_name
                (2) - 1-99. number of messages for channel flood limit
@@ -118,6 +120,10 @@
   * port     - server port connect to
   * server   - server hostname connect to
   * admins   - list of resources of bot admins
+  * stream_processor - you don't usualy want it to be something other
+                       then 'cat'. But if your language lies outside of
+                       ascii, it is useful to set to something like
+                       'enca -L ru_RU -x UTF-8'
 
   then, run it as ./skeleton.sh NOTE that you should be in same directory with 
   "skeleton.sh" file or everything will go terribly wrong!
