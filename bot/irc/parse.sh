@@ -42,7 +42,7 @@ say() {
 	fi
 	
 
-	if [ $(printf "%s\n" "$data" | wc -l) -eq 1 ] && [ $(printf "%s\n" "$data" | wc -c) -le 400 ]; then
+	if [ $(printf "%s\n" "$data" | wc -l) -eq 1 ] && [ ${#data} -le 400 ]; then
 		printf "%s\n" "PRIVMSG ${room} :${prep}$data" | tr -d "$stripper" | $stream_processor | send
 	else
 		i=0;
@@ -53,8 +53,11 @@ say() {
 
 		app=""
 		
-		if [ $(printf "%s\n" "$data" | wc -l) -gt $trim ]; then
-			app=" ... ( $(printf "%s\n" "$data" | wgetpaste 2>/dev/null | sed 's/Your paste can be seen here: //g') )"
+		if [ $(printf "%s\n" "$data" | wc -l) -gt $trim ] || [ ${#data} -gt 400 ]; then
+			app=" ... ( $(printf "%s\n" "$data" | wgetpaste | sed 's/Your paste can be seen here: //g') )"
+#			if [ ${#data} -gt 400 ] && [ $(printf "%s\n" "$data" | wc -l) -le $trim ]; then
+#				trim=$(($trim-1))
+#			fi
 		fi
 		printf "%s\n" "PRIVMSG ${room} :${prep}$(printf "%s\n" "$data" | sed "$trim!d" | tr -d "$stripper" | head -c 400)${app}" | $stream_processor | send
 		
