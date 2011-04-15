@@ -8,6 +8,7 @@
 
 say() {
 (
+#	set -x
 	israw="$1"
 	shift
 	prepend="$1"

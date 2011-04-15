@@ -42,12 +42,6 @@ echo "MAIL=$user/.mail" >> "$CMDF"
 echo "SUDO_COMMAND='hacker'" >> "$CMDF"
 echo "USER=$user" >> "$CMDF"
 echo "USERNAME=$user" >> "$CMDF"
-#echo "[ -f /etc/profile ] && . /etc/profile" >> "$CMDF"
-#echo "BASH_ENV='~/.profile ~/.bashrc ~/.bash_login ~/.bash_profile'"
-echo 'if [ -n "$BASH_ENV" ]; then . "$BASH_ENV"; fi' >> "$CMDF"
-echo "[ -f /home/$user/.bashrc ] && [ \"\$(( . /home/$user/.bashrc; echo \$\$ ) | tail -n 1)\" = \$\$ ] && . /home/$user/.bashrc" >> "$CMDF"
-echo "[ -f /home/$user/.profile ] && [ \"\$(( . /home/$user/.profile; echo \$\$ ) | tail -n 1)\" = \$\$ ] && . /home/$user/.profile" >> "$CMDF"
-
 echo 'ulimit -t 10' >> "$CMDF"
 #echo 'ulimit -f 9000' >> "$CMDF"
 echo 'ulimit -d 9000' >> "$CMDF"
@@ -58,11 +52,9 @@ echo 'ulimit -x 50' >> "$CMDF"
 echo "cd /home/$user" >> "$CMDF"
 echo "mkdir -p /home/$user/conf" >> "$CMDF"
 echo 'enable -n trap enable' >> "$CMDF"
-echo "$@" >> "$CMDF"
+echo "rm ~/.profile ~/.bashrc" >> "$CMDF"
 
 timeout 4 chroot --userspec=$uid:$uid --groups="$uid" "$WORKER" /bin/wrapper "bash $CMDP 2>&1 | head -c 10240 | sed 's|^$CMDP: line [0-9]*: ||g'"  || { echo "Terminated"; }
-chroot "$WORKER" killall -u $user &>/dev/null
-
 #timeout 1 chroot --userspec=$uid "$WORKER" /bin/sh -c "bash $CMDP 2>&1 | head -c 10240"
 
 ########################### home check

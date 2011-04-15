@@ -1,5 +1,7 @@
 #!/bin/sh
 
+#set -x
+
 # This program is free software. It comes without any warranty, to
 # the extent permitted by applicable law. You can redistribute it
 # and/or modify it under the terms of the Do What The Fuck You Want
@@ -24,11 +26,11 @@ handle_cmd() {
 	room="$1"
 	shift
 
-	lim_global=50
-	lim_user=20
+	lim_global=60
+	lim_user=40
 
-	lim_channel=6
-	lim_uoc=3
+	lim_channel=50
+	lim_uoc=50
 
 	chan_colors=0
 	
@@ -106,13 +108,24 @@ handle_cmd() {
 				printf "%s\n" "PART $@" | send
 			fi
 		;;
+		"xclear")
+			sudo ./clear "$username"
+			say "false" "true" "$nick" "$room" "Profile cleared"
+		;;
+		"xhelp")
+			say "false" "false" "$nick" "$nick" "Brief command list:"
+			say "false" "false" "$nick" "$nick" "@ <shellcode> or @sh <shellcode> - evalute shellcode"
+			say "false" "false" "$nick" "$nick" "@clear - clear your user profiles"
+		;;
 		"x"|"xsh")
 			shift
 			cmd="$@"
+#			echo "calling"
 			cmdout="$(sudo ./exec_cmd "$username" "$cmd")"
+#			echo "over"
 			if [ -e "states/new_user_$username" ]; then
 				say "false" "false" "$nick" "$nick" "Adding new user ${username}...Done."
-				say "false" "false" "$nick" "$nick" "Welcome to POSIX sh SH-bot! USAGE info and sources links are on: ftp://neverb.net/doc/shbot/shbot.txt"
+				say "false" "false" "$nick" "$nick" "Welcome to POSIX sh SH-bot! USAGE info and sources links are on: ftp://neverb.net/doc/shbot/shbot.txt or on cmd @help"
 				rm -f "states/new_user_$username"
 			fi
 
