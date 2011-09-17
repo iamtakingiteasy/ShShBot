@@ -54,7 +54,12 @@ handle_cmd() {
 
 
 	
-	username=$(printf "$rsrc" | tr '1234567890' 'abcdefghi' | tr -cd 'a-zA-Z' | tr '[:upper:]' '[:lower:]' | sed 's/^[^!]*!~//' | head -c 32)
+#	username=$(printf "$rsrc" | sed 's/^[0-9]*//' | tr -cd 'a-zA-Z0-9' | tr '[:upper:]' '[:lower:]' | sed 's/^[^!]*!~//' | head -c 32)
+	username=$(printf "$nick" | sed 's/^[0-9]*//' | tr -cd 'a-zA-Z0-9' | tr '[:upper:]' '[:lower:]' | head -c 32)
+	if [ -z "$username" ]; then
+		username=$(printf "$rsrc" | sed 's/^[0-9]*//' | tr -cd 'a-zA-Z0-9' | tr '[:upper:]' '[:lower:]' | head -c 32)
+	fi
+#	echo "$rsrc <> $username <> $nick"
 	if [ "$username" = "root" ] || [ "$username" = "database-kun" ]; then
 		username="user"
 	fi

@@ -55,24 +55,29 @@ echo 'ulimit -m 1024' >> "$CMDF"
 echo 'ulimit -v 80960' >> "$CMDF"
 echo 'ulimit -u 50' >> "$CMDF"
 echo 'ulimit -x 50' >> "$CMDF"
+echo 'RAMDOM=0' >> "$CMDF"
+echo 'RAMDON=1' >> "$CMDF"
 echo "cd /home/$user" >> "$CMDF"
 echo "mkdir -p /home/$user/conf" >> "$CMDF"
 echo 'enable -n trap enable' >> "$CMDF"
 echo "$@" >> "$CMDF"
 
 timeout 4 chroot --userspec=$uid:$uid --groups="$uid" "$WORKER" /bin/wrapper "bash $CMDP 2>&1 | head -c 10240 | sed 's|^$CMDP: line [0-9]*: ||g'"  || { echo "Terminated"; }
-chroot "$WORKER" killall -u $user &>/dev/null
+chroot "$WORKER" pkill -u $user &>/dev/null
 
 #timeout 1 chroot --userspec=$uid "$WORKER" /bin/sh -c "bash $CMDP 2>&1 | head -c 10240"
 
 ########################### home check
 files="$(find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -printf "%s %p\n" | sort -rn)"
-count=$(echo "$files" | wc -l)
+#echo find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -printf "%s %p\n" | sort -rn
+#count=$(echo "$files" | wc -l)
+count=10
 size=$(echo "$files" | awk '{i+=$1}END{print i}')
 
-if [ $count -gt 100 ]; then
+if [ $count -ge 100 ]; then
 	echo "Too many files. Cleaning up."
-	echo "$files" | sed '1,50d' | sed 's/^[0-9]*[[:space:]]//g' | while read line; do
+#	echo "$files" | sed '1,50d' | sed 's/^[0-9]*[[:space:]]//g' | while read line; do
+	echo "$files" | sed 's/^[0-9]*[[:space:]]//g' | while read line; do
 		if [ -f "$line" ]; then
 			rm -f "$line"
 		fi
