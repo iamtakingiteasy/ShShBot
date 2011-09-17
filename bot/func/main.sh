@@ -124,9 +124,11 @@ handle_cmd() {
 		;;
 		"x"|"xsh")
 			shift
+#			shift
 			cmd="$@"
 #			echo "calling"
 			cmdout="$(sudo ./exec_cmd "$username" "$cmd")"
+			return_code=$?
 #			echo "over"
 			if [ -e "states/new_user_$username" ]; then
 				say "false" "false" "$nick" "$nick" "Adding new user ${username}...Done."
@@ -135,7 +137,7 @@ handle_cmd() {
 			fi
 
 			if [ -z "$cmdout" ]; then
-				cmdout="no output"
+				cmdout="no output, return code $return_code"
 			fi
 
 			printf "%s\n" "[$room][$username]$(date "+[%F][%T]") $cmd" >> logs/MAIN_log
