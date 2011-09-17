@@ -42,12 +42,14 @@ echo "MAIL=$user/.mail" >> "$CMDF"
 echo "SUDO_COMMAND='hacker'" >> "$CMDF"
 echo "USER=$user" >> "$CMDF"
 echo "USERNAME=$user" >> "$CMDF"
-##echo "[ -f /etc/profile ] && . /etc/profile" >> "$CMDF"
-##echo "BASH_ENV='~/.profile ~/.bashrc ~/.bash_login ~/.bash_profile'"
-#echo 'if [ -n "$BASH_ENV" ]; then . "$BASH_ENV"; fi' >> "$CMDF"
+#echo "[ -f /etc/profile ] && . /etc/profile" >> "$CMDF"
+#echo "BASH_ENV='~/.profile ~/.bashrc ~/.bash_login ~/.bash_profile'"
+echo 'if [ -n "$BASH_ENV" ]; then . "$BASH_ENV"; fi' >> "$CMDF"
 
-#echo "[ -f /home/$user/.bashrc ] && [ \"\$(( . /home/$user/.bashrc; echo \$\$ ) | tail -n 1)\" = \$\$ ] && . /home/$user/.bashrc" >> "$CMDF"
-#echo "[ -f /home/$user/.profile ] && [ \"\$(( . /home/$user/.profile; echo \$\$ ) | tail -n 1)\" = \$\$ ] && . /home/$user/.profile" >> "$CMDF"
+echo "[ -f /home/$user/.bashrc ] && [ \"\$(( . /home/$user/.bashrc; echo \$\$ ) | 
+tail -n 1)\" = \$\$ ] && . /home/$user/.bashrc" >> "$CMDF"
+echo "[ -f /home/$user/.profile ] && [ \"\$(( . /home/$user/.profile; echo \$\$ ) 
+| tail -n 1)\" = \$\$ ] && . /home/$user/.profile" >> "$CMDF"
 
 echo 'ulimit -t 10' >> "$CMDF"
 #echo 'ulimit -f 9000' >> "$CMDF"
@@ -60,41 +62,53 @@ echo 'RAMDOM=0' >> "$CMDF"
 echo 'RAMDON=1' >> "$CMDF"
 echo "cd /home/$user" >> "$CMDF"
 echo "mkdir -p /home/$user/conf" >> "$CMDF"
-#echo 'enable -n trap enable' >> "$CMDF"
+echo 'enable -n trap enable' >> "$CMDF"
 echo "$@" >> "$CMDF"
 
 chmod +x "$CMDF"
 
-timeout 4 chroot --userspec=$uid:$uid --groups="$uid" "$WORKER" bash -c "$CMDP > /tmp/output"
+timeout 4 chroot --userspec=$uid:$uid --groups="$uid" "$WORKER" bash -c "$CMDP > 
+/tmp/output"
 return_code=$?
-timeout 4 chroot --userspec=$uid:$uid --groups="$uid" "$WORKER" bash -c "head -c 10240 /tmp/output; rm /tmp/output"
+timeout 4 chroot --userspec=$uid:$uid --groups="$uid" "$WORKER" bash -c "head -c 
+10240 /tmp/output; rm /tmp/output"
 chroot "$WORKER" pkill -u $user &>/dev/null
 
 #timeout 1 chroot --userspec=$uid "$WORKER" /bin/sh -c "bash $CMDP 2>&1"
 
 ########################### home check
-files="$(find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -printf "%s %p\n" | sort -rn)"
-#echo find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -printf "%s %p\n" | sort -rn
+files="$(find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -printf 
+"%s %p\n" | sort -rn)"
+#echo find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -printf "%s 
+%p\n" | sort -rn
 #count=$(echo "$files" | wc -l)
 count=10
 size=$(echo "$files" | awk '{i+=$1}END{print i}')
 
 if [ $count -ge 100 ]; then
 	echo "Too many files. Cleaning up."
-#	echo "$files" | sed '1,50d' | sed 's/^[0-9]*[[:space:]]//g' | while read line; do
+#	echo "$files" | sed '1,50d' | sed 's/^[0-9]*[[:space:]]//g' | while read 
+line; do
 	echo "$files" | sed 's/^[0-9]*[[:space:]]//g' | while read line; do
 		if [ -f "$line" ]; then
 			rm -f "$line"
 		fi
 	done
-	find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -type d -empty -not -path "$WORKER/home/$user" -and -not -path "$WORKER/home/$user/conf" -delete
+	find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -type d 
+-empty -not -path "$WORKER/home/$user" -and -not -path "$WORKER/home/$user/conf" 
+-delete
 fi
 
 if [ $size -gt $((5*1024*1024)) ]; then
 	echo "Too many big files. Cleaning up."
-	echo "$files" | awk -v size="$size" -v "limit=$((5*1024*1024))" '{diff+=$1; if ((size - diff) < limit) {print $0; exit}; print $0}' | sed 's/^[0-9]* //g' | while read line; do
+	echo "$files" | awk -v size="$size" -v "limit=$((5*1024*1024))" 
+'{diff+=$1; if ((size - diff) < limit) {print $0; exit}; print $0}' | sed 
+'s/^[0-9]* //g' | while read line; do
 		rm -f "$line"
 	done
-	find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -type d -empty -not -path "$WORKER/home/$user" -and -not -path "$WORKER/home/$user/conf" -delete
+	find "$WORKER/tmp" "$WORKER/var/tmp" "$WORKER/home" -user $uid -type d 
+-empty -not -path "$WORKER/home/$user" -and -not -path "$WORKER/home/$user/conf" 
+-delete
 fi
 exit $return_code
+
